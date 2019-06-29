@@ -27,14 +27,13 @@ Terminal.applyAddon(fullscreen);
 
 let term = new Terminal({
   disableStdin: true,
-  scrollback: 0
+  scrollback: 0,
+  cursorStyle: "block"
 });
 
 term.open(document.getElementById('xterm-container'));
 term.toggleFullScreen(true);
 //term.fit();
-
-term.focus();
 
 term.getInputLine = () => {
   return term.buffer.getLine(term._inputLine).translateToString(true, 2);
@@ -45,8 +44,10 @@ term.toggleInput = (inputEnabled) => {
 
   if (inputEnabled) {
     term.focus();
+    term.setOption("cursorStyle", "block");
   } else {
     term.blur();
+    term.setOption("cursorStyle", "underline");
   }
 };
 
@@ -115,6 +116,9 @@ term.on("user-input", (data) => {
 
 // FOR DEBUG
 window.TheTerm = term;
+window.onresize = () => {
+  term.refresh();
+}
 
 let commandProcessor = (function (xterm) {
   let execCommand = (cmdAll) => {
@@ -124,6 +128,9 @@ let commandProcessor = (function (xterm) {
     switch (cmd) {
       case "clear":
         xterm.clear();
+        break;
+      case "color":
+        xterm.writeln('\x1b[38;31mTRUECOLOR\x1b[0m');
         break;
       case "hello":
         xterm.toggleInput(false);
@@ -156,16 +163,29 @@ let commandProcessor = (function (xterm) {
         }
         xterm.toggleInput(false);
 
-        let counter = 0;
-        let intvl;
-
         // Now that you are connected, you can join channels with a topic:
         let channel = socket.channel("user:" + xterm._authInfo.token, {});
         channel.join()
           .receive("ok", resp => {
             console.log("user channel connected");
 
+            channel.on("game:started", resp => {
+
+              console.log(resp);
+
+              if (intvl) clearInterval(intvl);
+              xterm.writeln('\b Done!');
+              xterm.writeln('');
+              xterm.write('\x1b[38;2;0;255;0mCONNECTED\x1b[0m');
+              xterm.writeln(" !!! Joined game successfully, start hacking now !!!");
+              xterm.toggleInput(true);
+              xterm.prompt();
+            });
+
             channel.push("match:join");
+
+            let counter = 0;
+            let intvl;
 
             xterm.write("Connecting gameframe : ");
             intvl = setInterval(() => {
@@ -179,12 +199,6 @@ let commandProcessor = (function (xterm) {
           })
           .receive("error", resp => {
             xterm.prompt("\b !ERROR!");
-          })
-          .receive("game:started", resp => {
-            if (intvl) clearInterval(intvl);
-            xterm.writeln('');
-            xterm.writeln("!!! Joined game successfully, start hacking now !!!");
-            xterm.prompt();
           });
         break;
       default:
@@ -197,3 +211,5 @@ let commandProcessor = (function (xterm) {
     exec: execCommand
   };
 })(term);
+
+term.focus();

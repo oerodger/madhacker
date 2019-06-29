@@ -7,9 +7,32 @@ defmodule Madhacker.GameSupervisor do
     Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
   end
 
-  def start_child(graph, _users) do
+  def start_child(graph, users) do
     game_id = UUID.uuid1()
     # TODO: инициализировать граф, заполнить характеристики
+
+    flat_graph = Map.values(graph)
+    Enum.each(flat_graph,
+      fn node ->
+        case node.layer do
+          3 -> Map.put(node, :defense, 10)
+          2 -> Map.put(node, :defense, 20)
+          1 -> Map.put(node, :defense, 30)
+          0 -> Map.put(node, :defense, 40)
+          _ -> 0
+        end
+        init_server_node(node)
+    end)
+    users_nodes_if = Enum.filter(flat_graph, fn node ->
+      node.layer == 3
+    end)
+    users_nodes = Enum.take_random(users_nodes_if, Enum.count(users))
+    ziped = Enum.zip(users, users_nodes)
+
+    Enum.each(ziped, fn { user, node } ->
+      init_user_node(node, user)
+    end)
+
     spec = { Madhacker.Game, { game_id, graph} }
     case DynamicSupervisor.start_child(__MODULE__, spec) do
       { :ok, pid } ->
@@ -19,6 +42,16 @@ defmodule Madhacker.GameSupervisor do
       other ->
         { :error, other }
     end
+  end
+
+  def init_user_node(node, user) do
+      Map.put(node, :user, user)
+      Map.put(node, :type, :user)
+      Map.put(node, :attack, 10)
+  end
+
+  def init_server_node(node) do
+    Map.put(node, :type, :server)
   end
 
   @impl true

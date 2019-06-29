@@ -13,14 +13,13 @@ defmodule MadhackerWeb.Router do
     plug :accepts, ["json"]
   end
 
-  scope "/", MadhackerWeb do
-    pipe_through :browser
-
-    get "/", PageController, :index
-  end
-
   scope "/api", MadhackerWeb do
      pipe_through :api
      resources "/user", UserController, except: [:edit]
+  end
+
+  scope "/", MadhackerWeb do
+    pipe_through :browser
+    get "/", PageController, :index
   end
 end

@@ -9,9 +9,10 @@ defmodule Madhacker.Application do
     # List all child processes to be supervised
     children = [
       # Start the endpoint when the application starts
-      MadhackerWeb.Endpoint
+      MadhackerWeb.Endpoint,
       # Starts a worker by calling: Madhacker.Worker.start_link(arg)
       # {Madhacker.Worker, arg},
+      { Madhacker.MatchMaker, [] }
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

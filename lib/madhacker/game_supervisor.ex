@@ -17,17 +17,19 @@ defmodule Madhacker.GameSupervisor do
     users_nodes = Enum.take_random(users_nodes_if, Enum.count(users))
     ziped = Enum.zip(users, users_nodes)
 
-    newgraph = Enum.reduce(Map.values(graph), ziped, fn node, acc ->
+    graphwithusers = Enum.reduce(ziped, graph, fn x, acc ->
+      {userid, node} = x
+      %{ acc|node.id => init_user_node(node, userid)}
+    end)
+
+    newgraph = Enum.reduce(Map.values(graphwithusers), graphwithusers, fn (node, acc) ->
       newNode = Map.put(node, :defense, 40 - 10*node.layer)
-      servernode = init_server_node(newNode)
-      nn = Enum.find(acc, nil, fn { u, n } ->
-        n.id == node.id
-      end)
-      if nn != nil do
-        init_user_node(servernode, nn)
+      if Map.has_key?(node, :type) do
+        %{ acc|node.id => newNode}
       else
-        servernode
+        %{ acc|node.id => init_server_node(newNode)}
       end
+
     end)
 
     spec = { Madhacker.Game, { game_id, newgraph, users} }

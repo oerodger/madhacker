@@ -33,7 +33,7 @@ defmodule Madhacker.GameSupervisor do
       init_user_node(node, user)
     end)
 
-    spec = { Madhacker.Game, { game_id, graph} }
+    spec = { Madhacker.Game, { game_id, graph, users} }
     case DynamicSupervisor.start_child(__MODULE__, spec) do
       { :ok, pid } ->
         Registry.register(@registry, game_id, pid)
@@ -62,10 +62,10 @@ defmodule Madhacker.GameSupervisor do
     )
   end
 
-  def handle(game_id, node_id, msg) do
+  def send(game_id, user_id, msg) do
     case Registry.lookup(@registry, game_id) do
       [{pid, _}] ->
-        send(pid, { node_id, msg })
+        send(pid, { { :user, user_id }, msg })
       other ->
         { :error, other}
     end

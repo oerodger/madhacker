@@ -3,7 +3,7 @@ defmodule Madhacker.UserActor do
 
   def init(state), do: {:ok, state}
 
-  def handle_cast(:hello, state) do
+  def handle_cast("hello", state) do
     MadhackerWeb.Endpoint.broadcast("user:#{ state.user_id }", "hello", %{})
     {:noreply, state}
   end

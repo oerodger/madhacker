@@ -3,6 +3,7 @@
 // its own CSS file.
 import css from "../css/app.css"
 import xtcss from "xterm/dist/xterm.css"
+import xtfscss from "xterm/src/addons/fullscreen/fullscreen.css"
 
 // webpack automatically bundles all modules in your
 // entry points. Those entry points can be configured
@@ -18,20 +19,34 @@ import "phoenix_html"
 import socket from "./socket"
 
 import { Terminal } from 'xterm';
+import * as fullscreen from 'xterm/lib/addons/fullscreen/fullscreen';
+// import * as fit from 'xterm/lib/addons/fit/fit';
+
+Terminal.applyAddon(fullscreen);
+// Terminal.applyAddon(fit);
 
 let term = new Terminal();
 
 term.open(document.getElementById('xterm-container'));
+term.toggleFullScreen(true);
+// term.fit();
+
 term.focus();
 
-term.prompt = () => {
-  term.write('\r\n$ ');
+term.getInputLine = () => {
+  return term.buffer.getLine(term._inputLine).translateToString(true, 2);
 };
 
-term.writeln('Welcome to xterm.js');
-term.writeln('This is a local terminal emulation, without a real terminal in the back-end.');
-term.writeln('Type some keys and commands to play around.');
+term.prompt = () => {
+  term.writeln('');
+  term.write('$ ');
+  term._inputLine = term.buffer.baseY + term.buffer.cursorY;
+};
+
+term.writeln('Welcome to M@DHACKER');
+term.writeln('This game will drive you mad or make you a real hacker %)');
 term.writeln('');
+
 term.prompt();
 
 term.onKey((e) => {
@@ -39,9 +54,12 @@ term.onKey((e) => {
   const printable = !ev.altKey && !ev.ctrlKey && !ev.metaKey;
 
   if (ev.keyCode === 13) {
+    term.emit("user-input", term.getInputLine());
     term.prompt();
+  } else if (ev.keyCode === 38 || ev.keyCode === 40) {
+    // Do NOT handle UP or DOWN now
   } else if (ev.keyCode === 8) {
-   // Do not delete the prompt
+    // Do not delete the prompt
     if (term._core.buffer.x > 2) {
       term.write('\b \b');
     }
@@ -49,3 +67,23 @@ term.onKey((e) => {
     term.write(e.key);
   }
 });
+
+term.onRender(() => {
+  term._inputLine = term.buffer.baseY + term.buffer.cursorY;
+});
+
+term.on("user-input", (data) => {
+  term.writeln('');
+  term.write("ECHO: " + data);
+  //  + " ||| "
+  // + JSON.stringify({ inpL: term._inputLine, len: term.buffer.length, rows: term.rows, curY: term.buffer.cursorY, baseY: term.buffer.baseY }));
+});
+
+// FOR DEBUG
+window.TheTerm = term;
+
+/*
+term.onData((dataStr) => {
+  term.write(dataStr);
+});
+*/

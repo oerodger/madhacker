@@ -8,6 +8,7 @@ defmodule Madhacker.ServerActor do
       {:hacked}
     else
       {:nothacked}
+    end
   end
 
 

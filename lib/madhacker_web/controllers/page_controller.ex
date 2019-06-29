@@ -5,10 +5,7 @@ defmodule MadhackerWeb.PageController do
 
   def index(conn, _params) do
     Amnesia.transaction do
-      ## john = %User{name: "John", email: "john@example.com"} |> User.write
-      john = User.read(1)
-
-      render(conn, "index.html", user: john.email)
+      render(conn, "index.html")
     end
 
   end

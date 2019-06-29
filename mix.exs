@@ -41,6 +41,7 @@ defmodule Madhacker.MixProject do
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
       {:amnesia, github: "meh/amnesia", branch: "master", override: true},
+      { :elixir_uuid, "~> 1.2" },
     ]
   end
 end

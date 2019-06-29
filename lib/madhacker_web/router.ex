@@ -19,8 +19,8 @@ defmodule MadhackerWeb.Router do
     get "/", PageController, :index
   end
 
-  # Other scopes may use custom stacks.
-  # scope "/api", MadhackerWeb do
-  #   pipe_through :api
-  # end
+  scope "/api", MadhackerWeb do
+     pipe_through :api
+     resources "/user", UserController, except: [:edit]
+  end
 end

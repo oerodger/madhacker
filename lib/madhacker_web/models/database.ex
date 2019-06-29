@@ -10,11 +10,17 @@ defdatabase Database do
 
   # this defines a table with other attributes as ordered set, and defines an
   # additional index as email, this improves lookup operations
-  deftable User, [{ :id, autoincrement }, :name, :email], type: :ordered_set, index: [:email] do
+  deftable User, [{ :id, autoincrement }, :name, :token], type: :ordered_set, index: [:token] do
 
-    # again not needed, but nice to have
-    @type t :: %User{id: non_neg_integer, name: String.t, email: String.t}
+    @type t :: %User{id: non_neg_integer, name: String.t, token: String.t}
 
+    # def create_token(self) do
+    #   %User{id: self.id, token: UUID.uuid1()} |> Message.write
+    # end
+
+    # def create_token!(self) do
+    #   %User{id: self.id, token: UUID.uuid1()} |> Message.write!
+    # end
 
   end
 end

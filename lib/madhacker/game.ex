@@ -8,7 +8,7 @@ defmodule Madhacker.Game do
   end
 
   @impl true
-  def init({ game_id, graph }) do
+  def init({ game_id, graph, users }) do
     { _, lksd } = DynamicSupervisor.init(
       strategy: :one_for_one,
       extra_arguments: [graph]
@@ -22,6 +22,9 @@ defmodule Madhacker.Game do
         end
       end
     )
+    Enum.each(users, fn user ->
+      MadhackerWeb.Endpoint.broadcast("user:#{ user }", "game:started", %{ id: game_id })
+    end)
     { :ok, lksd }
   end
 
@@ -29,7 +32,8 @@ defmodule Madhacker.Game do
     spec = { Madhacker.UserActor, { self(), node } }
     case DynamicSupervisor.start_child(__MODULE__, spec) do
       { :ok, pid } ->
-        Registry.register(@registry, game_id <> node.id, pid)
+        Registry.register(@registry, game_id <> node.user, pid)
+        Registry.register(@registry, "user:" <> node.id, pid)
         { :ok }
 
       other ->
@@ -49,7 +53,14 @@ defmodule Madhacker.Game do
     end
   end
 
-  def handle_cast(node_id, msg, { game_id, graph }) do
+  def handle_call({ :user, user_id }, msg, { game_id, graph }) do
+    case Registry.lookup(@registry, "user:" <> user_id) do
+      [{ pid, _ }] -> send(pid, msg)
+    end
+    { game_id, graph }
+  end
+
+  def handle_cast({ :node, node_id }, msg, { game_id, graph }) do
     case Registry.lookup(@registry, game_id <> node_id) do
       [{ pid, _ }] -> send(pid, msg)
     end

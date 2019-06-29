@@ -16,4 +16,12 @@ defmodule MadhackerWeb.UserChannel do
       {:error, %{ "body" => "user_id is not associated" }}
     end
   end
+
+  def handle_in("game:command", message, socket) do
+    if user_id = socket.assigns[:user_id] do
+      {:reply, %{ result: Madhacker.GameSupervisor.send(socket.game_id, user_id, message) }, socket}
+    else
+      {:error, %{ "body" => "user_id is not associated" }}
+    end
+  end
 end

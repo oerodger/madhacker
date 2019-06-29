@@ -4,7 +4,7 @@ defmodule Madhacker.GameSupervisor do
   @registry Registry.Games
 
   def start_link(init_arg) do
-    Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
+    DynamicSupervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
   end
 
   def start_child(graph, users) do
@@ -45,9 +45,11 @@ defmodule Madhacker.GameSupervisor do
   end
 
   def init_user_node(node, user) do
-      Map.put(node, :user, user)
-      Map.put(node, :type, :user)
-      Map.put(node, :attack, 10)
+      Map.put(
+        Map.put(
+          Map.put(node, :user, user),
+          :type, :user),
+      :attack, 10)
   end
 
   def init_server_node(node) do
@@ -55,11 +57,8 @@ defmodule Madhacker.GameSupervisor do
   end
 
   @impl true
-  def init(init_arg) do
-    DynamicSupervisor.init(
-      strategy: :one_for_one,
-      extra_arguments: [init_arg]
-    )
+  def init(_) do
+    DynamicSupervisor.init(strategy: :one_for_one)
   end
 
   def send(game_id, user_id, msg) do

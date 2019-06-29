@@ -23,13 +23,16 @@ import * as fullscreen from 'xterm/lib/addons/fullscreen/fullscreen';
 // import * as fit from 'xterm/lib/addons/fit/fit';
 
 Terminal.applyAddon(fullscreen);
-// Terminal.applyAddon(fit);
+//Terminal.applyAddon(fit);
 
-let term = new Terminal();
+let term = new Terminal({
+  disableStdin: true,
+  scrollback: 0
+});
 
 term.open(document.getElementById('xterm-container'));
 term.toggleFullScreen(true);
-// term.fit();
+//term.fit();
 
 term.focus();
 
@@ -37,8 +40,18 @@ term.getInputLine = () => {
   return term.buffer.getLine(term._inputLine).translateToString(true, 2);
 };
 
-term.prompt = () => {
-  term.writeln('');
+term.toggleInput = (inputEnabled) => {
+  term._inputEnabed = !!inputEnabled;
+
+  if (inputEnabled) {
+    term.focus();
+  } else {
+    term.blur();
+  }
+};
+
+term.prompt = (message = '') => {
+  term.writeln(message);
   term.write('$ ');
   term._inputLine = term.buffer.baseY + term.buffer.cursorY;
 };
@@ -49,9 +62,22 @@ term.writeln('');
 
 term.prompt();
 
+/*
+term.onData((dataStr) => {
+  setTimeout(() => term.write("ECHO: " + dataStr), 100);
+});
+*/
+
 term.onKey((e) => {
   const ev = e.domEvent;
   const printable = !ev.altKey && !ev.ctrlKey && !ev.metaKey;
+
+  ev.preventDefault();
+  ev.stopPropagation();
+
+  if (term._inputEnabed === false) {
+    return;
+  }
 
   if (ev.keyCode === 13) {
     term.emit("user-input", term.getInputLine());
@@ -73,8 +99,16 @@ term.onRender(() => {
 });
 
 term.on("user-input", (data) => {
-  term.writeln('');
-  term.write("ECHO: " + data);
+  if (typeof data === "string") {
+    let command = data.trim().split(" ");
+    if (command.length > 0) {
+      term.writeln('');
+      commandProcessor.exec(command);
+    }
+  }
+
+  // term.writeln('');
+  // term.write("ECHO: " + data);
   //  + " ||| "
   // + JSON.stringify({ inpL: term._inputLine, len: term.buffer.length, rows: term.rows, curY: term.buffer.cursorY, baseY: term.buffer.baseY }));
 });
@@ -82,8 +116,84 @@ term.on("user-input", (data) => {
 // FOR DEBUG
 window.TheTerm = term;
 
-/*
-term.onData((dataStr) => {
-  term.write(dataStr);
-});
-*/
+let commandProcessor = (function (xterm) {
+  let execCommand = (cmdAll) => {
+    let command = cmdAll[0];
+    let cmdArgs = cmdAll.slice(1);
+    let cmd = command.toLowerCase();
+    switch (cmd) {
+      case "clear":
+        xterm.clear();
+        break;
+      case "hello":
+        xterm.toggleInput(false);
+        setTimeout(() => {
+          xterm.prompt("Hello, " + (cmdArgs && cmdArgs.length > 0 ? cmdArgs.join(" ") : "<unknown stranger>"));
+          xterm.toggleInput(true);
+        });
+        break;
+      case "login":
+        if (cmdArgs.length > 0) {
+          let userLogin = cmdArgs[0];
+          if (userLogin.trim() === '') {
+            xterm.writeln("Err: provide you name!");
+            break;
+          }
+          xterm.toggleInput(false);
+          fetch("/api/user/new?login=" + userLogin).then((resp) => resp.json()).then((authInfo) => {
+            xterm._authInfo = authInfo;
+            xterm.prompt("AUTH DONE: " + JSON.stringify(authInfo));
+            xterm.toggleInput(true);
+          });
+        } else {
+          xterm.writeln("Err: provide you name!");
+        }
+        break;
+      case "join":
+        if (!xterm._authInfo) {
+          xterm.writeln("Err: login yourself first!");
+          break;
+        }
+        xterm.toggleInput(false);
+
+        let counter = 0;
+        let intvl;
+
+        // Now that you are connected, you can join channels with a topic:
+        let channel = socket.channel("user:" + xterm._authInfo.token, {});
+        channel.join()
+          .receive("ok", resp => {
+            console.log("user channel connected");
+
+            channel.push("match:join");
+
+            xterm.write("Connecting gameframe : ");
+            intvl = setInterval(() => {
+              let indx = counter++;
+              if (indx > 3) {
+                counter = 0;
+                indx = 0;
+              }
+              xterm.write('\b' + ['\\', '|', '/', '-'][indx]);
+            }, 150);
+          })
+          .receive("error", resp => {
+            xterm.prompt("\b !ERROR!");
+          })
+          .receive("game:started", resp => {
+            if (intvl) clearInterval(intvl);
+            xterm.writeln('');
+            xterm.writeln("!!! Joined game successfully, start hacking now !!!");
+            xterm.prompt();
+          });
+        break;
+      default:
+        xterm.writeln('You said: "' + cmdAll.join(" ") + '"')
+        break;
+    }
+  };
+
+  return {
+    exec: execCommand
+  };
+})(term);

@@ -1,18 +1,23 @@
 defmodule Madhacker.Game do
   use DynamicSupervisor
 
+  require Logger
+
   @registry Registry.Actors
 
   def start_link(init_arg) do
-    Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
+    DynamicSupervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
   end
 
   @impl true
   def init({ game_id, graph, users }) do
+    Logger.info("game starting")
     { _, lksd } = DynamicSupervisor.init(
       strategy: :one_for_one,
       extra_arguments: [graph]
     )
+    Logger.info("copypaste")
+    IO.inspect graph
     Enum.each(
       Map.values(graph),
       fn node ->
@@ -22,6 +27,7 @@ defmodule Madhacker.Game do
         end
       end
     )
+    Logger.info("game started")
     Enum.each(users, fn user ->
       MadhackerWeb.Endpoint.broadcast("user:#{ user }", "game:started", %{ id: game_id })
     end)
@@ -29,6 +35,7 @@ defmodule Madhacker.Game do
   end
 
   defp initUserNode(game_id, node) do
+    Logger.info("start user actor")
     spec = { Madhacker.UserActor, { self(), node } }
     case DynamicSupervisor.start_child(__MODULE__, spec) do
       { :ok, pid } ->
@@ -42,6 +49,7 @@ defmodule Madhacker.Game do
   end
 
   defp initServerNode(game_id, node) do
+    Logger.info("start server actor")
     spec = { Madhacker.ServerActor, { self(), node } }
     case DynamicSupervisor.start_child(__MODULE__, spec) do
       { :ok, pid } ->

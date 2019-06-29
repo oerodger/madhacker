@@ -10,30 +10,27 @@ defmodule Madhacker.GameSupervisor do
   def start_child(graph, users) do
     game_id = UUID.uuid1()
     # TODO: инициализировать граф, заполнить характеристики
-
     flat_graph = Map.values(graph)
-    Enum.each(flat_graph,
-      fn node ->
-        case node.layer do
-          3 -> Map.put(node, :defense, 10)
-          2 -> Map.put(node, :defense, 20)
-          1 -> Map.put(node, :defense, 30)
-          0 -> Map.put(node, :defense, 40)
-          _ -> 0
-        end
-        init_server_node(node)
-    end)
     users_nodes_if = Enum.filter(flat_graph, fn node ->
       node.layer == 3
     end)
     users_nodes = Enum.take_random(users_nodes_if, Enum.count(users))
     ziped = Enum.zip(users, users_nodes)
 
-    Enum.each(ziped, fn { user, node } ->
-      init_user_node(node, user)
+    newgraph = Enum.reduce(Map.values(graph), ziped, fn node, acc ->
+      newNode = Map.put(node, :defense, 40 - 10*node.layer)
+      servernode = init_server_node(newNode)
+      nn = Enum.find(acc, nil, fn { u, n } ->
+        n.id == node.id
+      end)
+      if nn != nil do
+        init_user_node(servernode, nn)
+      else
+        servernode
+      end
     end)
 
-    spec = { Madhacker.Game, { game_id, graph, users} }
+    spec = { Madhacker.Game, { game_id, newgraph, users} }
     case DynamicSupervisor.start_child(__MODULE__, spec) do
       { :ok, pid } ->
         Registry.register(@registry, game_id, pid)
@@ -44,10 +41,12 @@ defmodule Madhacker.GameSupervisor do
     end
   end
 
-  def init_user_node(node, user) do
-      Map.put(node, :user, user)
-      Map.put(node, :type, :user)
-      Map.put(node, :attack, 10)
+  def init_user_node(node, usr) do
+       Map.put(
+         Map.put(Map.put(node, :attack, 10),
+           :type, :user),
+       :user, usr)
+
   end
 
   def init_server_node(node) do

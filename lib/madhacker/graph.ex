@@ -3,7 +3,7 @@ defmodule Madhacker.Graph do
     core = Enum.reduce(1..core_weight, %{}, fn x, acc ->
       Map.put(acc, x, %{
         id: x,
-        layer: :core,
+        layer: 0,
         neighbors: Enum.filter(1..core_weight, fn y -> x != y end),
       })
     end)

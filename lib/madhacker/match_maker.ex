@@ -16,8 +16,9 @@ defmodule Madhacker.MatchMaker do
   def handle_cast({:join, user_id}, [another]) do
     Logger.debug("generate graph for user #{ user_id } and #{ another }")
     graph = Madhacker.Graph.generate(3, 3, 3)
-    MadhackerWeb.Endpoint.broadcast("user:#{ user_id }", "game:started", %{ another: another, graph: graph })
-    MadhackerWeb.Endpoint.broadcast("user:#{ another }", "game:started", %{ another: user_id, graph: graph })
+    Madhacker.GameSupervisor.start_child(graph, [user_id, another])
+    # MadhackerWeb.Endpoint.broadcast("user:#{ user_id }", "game:started", %{ another: another, graph: graph })
+    # MadhackerWeb.Endpoint.broadcast("user:#{ another }", "game:started", %{ another: user_id, graph: graph })
     {:noreply, []}
   end
 

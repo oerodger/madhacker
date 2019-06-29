@@ -55,11 +55,19 @@ let socket = new Socket("/socket", {params: {token: window.userToken}})
 socket.connect()
 
 // Now that you are connected, you can join channels with a topic:
-let channel = socket.channel("user:user_id", {})
-channel.join()
+let channel1 = socket.channel("user:user1", {})
+channel1.join()
   .receive("ok", resp => { console.log("Joined successfully", resp) })
   .receive("error", resp => { console.log("Unable to join", resp) })
 
-channel.push("match:join");
+channel1.push("match:join");
+
+// Now that you are connected, you can join channels with a topic:
+let channel2 = socket.channel("user:user2", {})
+channel2.join()
+  .receive("ok", resp => { console.log("Joined successfully", resp) })
+  .receive("error", resp => { console.log("Unable to join", resp) })
+
+channel2.push("match:join");
 
 export default socket

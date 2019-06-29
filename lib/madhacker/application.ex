@@ -12,7 +12,8 @@ defmodule Madhacker.Application do
       MadhackerWeb.Endpoint,
       # Starts a worker by calling: Madhacker.Worker.start_link(arg)
       # {Madhacker.Worker, arg},
-      { Madhacker.MatchMaker, [] }
+      { Madhacker.MatchMaker, [] },
+      { DynamicSupervisor, strategy: :one_for_one, name: Madhacker.GameSupervisor }
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
